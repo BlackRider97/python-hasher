@@ -1,4 +1,3 @@
-
 // License: MIT License
 // http://www.opensource.org/licenses/mit-license.php
 
@@ -9,6 +8,7 @@
 
 
 #include <Python.h>
+#include <stdio.h>
 #include "MurmurHash3.h"
 
 
@@ -17,7 +17,6 @@ typedef int Py_ssize_t;
 #define PY_SSIZE_T_MAX INT_MAX
 #define PY_SSIZE_T_MIN INT_MIN
 #endif
-
 
 static PyObject *
 _py_murmur3_128(PyObject *self, PyObject *args, int x86, int size)
@@ -34,12 +33,11 @@ _py_murmur3_128(PyObject *self, PyObject *args, int x86, int size)
     if (x86) {
         MurmurHash3_x86_128((void *)key, len, seed, &out);
     } else {
-        MurmurHash3_x64_128((void *)key, len, seed, &out);
+        MurmurHash3_x86_32((void *)key, len, seed, &out);
     }
 
-    return _PyLong_FromByteArray((const unsigned char *)&out, size, 0, 0);
+    return _PyLong_FromByteArray((const unsigned char *)&out, size, 1, 1);
 }
-
 
 static PyObject *
 py_murmur3_x86_64(PyObject *self, PyObject *args)

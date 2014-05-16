@@ -8,6 +8,7 @@
 // non-native version will be less than optimal.
 
 #include "MurmurHash3.h"
+#include <stdio.h>
 
 //-----------------------------------------------------------------------------
 // Platform-specific functions and macros
@@ -19,6 +20,7 @@
 #define FORCE_INLINE	__forceinline
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #define ROTL32(x,y)	_rotl(x,y)
 #define ROTL64(x,y)	_rotl64(x,y)
@@ -90,61 +92,49 @@ FORCE_INLINE uint64_t fmix64 ( uint64_t k )
 }
 
 //-----------------------------------------------------------------------------
+// 64-bit hash for 32-bit platforms
 
 void MurmurHash3_x86_32 ( const void * key, int len,
                           uint32_t seed, void * out )
 {
-  const uint8_t * data = (const uint8_t*)key;
-  const int nblocks = len / 4;
+  const uint64_t m = BIG_CONSTANT(0xc6a4a7935bd1e995);
+  const int r = 47;
+  uint64_t h = seed ^ (len * m);
+  const uint64_t * data = (const uint64_t *)key;
+  const uint64_t * end = data + (len/8);
 
-  uint32_t h1 = seed;
-
-  const uint32_t c1 = 0xcc9e2d51;
-  const uint32_t c2 = 0x1b873593;
-
-  //----------
-  // body
-
-  const uint32_t * blocks = (const uint32_t *)(data + nblocks*4);
-
-  for(int i = -nblocks; i; i++)
+  while(data != end)
   {
-    uint32_t k1 = getblock32(blocks,i);
+    uint64_t k = *data++;
 
-    k1 *= c1;
-    k1 = ROTL32(k1,15);
-    k1 *= c2;
-    
-    h1 ^= k1;
-    h1 = ROTL32(h1,13); 
-    h1 = h1*5+0xe6546b64;
+    k *= m;
+    k ^= k >> r;
+    k *= m;
+
+    h ^= k;
+    h *= m;
   }
 
-  //----------
-  // tail
+  const unsigned char * data2 = (const unsigned char*)data;
 
-  const uint8_t * tail = (const uint8_t*)(data + nblocks*4);
-
-  uint32_t k1 = 0;
-
-  switch(len & 3)
+  switch(len & 7)
   {
-  case 3: k1 ^= tail[2] << 16;
-  case 2: k1 ^= tail[1] << 8;
-  case 1: k1 ^= tail[0];
-          k1 *= c1; k1 = ROTL32(k1,15); k1 *= c2; h1 ^= k1;
+  case 7: h ^= uint64_t(data2[6]) << 48;
+  case 6: h ^= uint64_t(data2[5]) << 40;
+  case 5: h ^= uint64_t(data2[4]) << 32;
+  case 4: h ^= uint64_t(data2[3]) << 24;
+  case 3: h ^= uint64_t(data2[2]) << 16;
+  case 2: h ^= uint64_t(data2[1]) << 8;
+  case 1: h ^= uint64_t(data2[0]);
+          h *= m;
   };
 
-  //----------
-  // finalization
+  h ^= h >> r;
+  h *= m;
+  h ^= h >> r;
 
-  h1 ^= len;
-
-  h1 = fmix32(h1);
-
-  *(uint32_t*)out = h1;
-} 
-
+  *(uint64_t*)out = h;
+}
 //-----------------------------------------------------------------------------
 
 void MurmurHash3_x86_128 ( const void * key, const int len,
