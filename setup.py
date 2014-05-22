@@ -1,4 +1,3 @@
-
 import os
 import platform
 import sys
@@ -13,6 +12,7 @@ if sys.platform == 'darwin':
     arch = platform.machine()
     if arch in ('i386', 'x86_64'):
         os.environ['ARCHFLAGS'] = '-arch i386 -arch x86_64'
+        os.environ['ARCHFLAGS'] = '-Wno-error=unused-command-line-argument-hard-error-in-future'
 
 smhasher_ext = Extension('smhasher',
     sources=[
